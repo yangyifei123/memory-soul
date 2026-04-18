@@ -52,27 +52,30 @@ describe('MemoryConsolidator', () => {
 
   it('same type/agent/scope → updated (preferences type)', () => {
     const existing: MemoryEntry[] = [
-      { id: 'e1', agentId: 'sisyphus', scope: 'persistent', type: 'preferences', content: 'Old preference', timestamp: Date.now() - 1000, confidence: 0.8, source: 'agent', tags: [] }
+      { id: 'e1', agentId: 'sisyphus', scope: 'persistent', type: 'preferences', content: 'User prefers dark mode theme', timestamp: Date.now() - 1000, confidence: 0.8, source: 'agent', tags: [] }
     ];
-    const newEntries = [createEntry('preferences', 0.9, 'New preference')];
+    const newEntries = [createEntry('preferences', 0.9, 'User prefers light mode theme')];
 
     const result = consolidate(newEntries, existing);
 
     expect(result.updated).toHaveLength(1);
-    expect(result.updated[0].content).toBe('New preference');
+    expect(result.updated[0].content).toBe('User prefers light mode theme');
     expect(result.added).toEqual([]);
   });
 
-  it('higher confidence → updated', () => {
+  it('learnings are additive (never replaced)', () => {
     const existing: MemoryEntry[] = [
-      { id: 'e1', agentId: 'sisyphus', scope: 'persistent', type: 'learnings', content: 'Old learning', timestamp: Date.now() - 1000, confidence: 0.5, source: 'agent', tags: [] }
+      { id: 'e1', agentId: 'sisyphus', scope: 'persistent', type: 'learnings', content: 'Always validate inputs before processing', timestamp: Date.now() - 1000, confidence: 0.5, source: 'agent', tags: [] }
     ];
-    const newEntries = [createEntry('learnings', 0.9, 'New learning with higher confidence')];
+    const newEntries = [createEntry('learnings', 0.9, 'Use TypeScript strict mode for type safety')];
 
     const result = consolidate(newEntries, existing);
 
-    expect(result.updated).toHaveLength(1);
-    expect(result.updated[0].confidence).toBe(0.9);
+    // Learnings are NEVER replaced (per docstring: "learnings: append")
+    // Since content differs, it should be added as new
+    expect(result.added).toHaveLength(1);
+    expect(result.added[0].content).toBe('Use TypeScript strict mode for type safety');
+    expect(result.updated).toEqual([]);
   });
 
   it('lower confidence → added (not updated)', () => {

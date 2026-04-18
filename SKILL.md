@@ -36,7 +36,7 @@ const registry = createMemoryHookRegistry({
 await registry.onSessionStart('sisyphus', sessionId);
 
 // Get agent identity context for injection
-const identity = await registry.getAgentIdentity('sisyphus');
+const context = await registry.getAgentContext('sisyphus');
 
 // Session end
 await registry.onSessionEnd('sisyphus', sessionId);

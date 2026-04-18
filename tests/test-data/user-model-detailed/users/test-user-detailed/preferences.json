@@ -1,0 +1,10 @@
+{
+  "userId": "test-user-detailed",
+  "communicationStyle": "mixed",
+  "technicalLevel": "intermediate",
+  "ignoredPatterns": [],
+  "preferredPatterns": [
+    "detailed"
+  ],
+  "lastUpdated": 1776535899237
+}

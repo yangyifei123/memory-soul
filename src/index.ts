@@ -24,6 +24,11 @@ export * from './memory/agent-memory';
 export * from './memory/user-model';
 export * from './hooks/registry';
 export * from './engine/evolution-engine';
+export * from './talents/talents-store';
+export * from './memory/summarizer';
+export * from './memory/dedup';
+export * from './memory/consolidator';
+export * from './identity/identity-store';
 
 // Re-export types for convenience
 import {

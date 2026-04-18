@@ -43,20 +43,37 @@ export function buildToolUsageSummary(interactions: Interaction[]): ToolUsageSum
 export function extractKeyFacts(interactions: Interaction[]): string[] {
   const facts: string[] = [];
 
-  // Extract from successful tool executions
+  // Extract from user messages — capture what the user actually asked for
+  const userMessages = interactions.filter(i => i.type === 'user-message');
+  if (userMessages.length > 0) {
+    const intent = userMessages[0].content.slice(0, 80);
+    facts.push(`User goal: ${intent}`);
+  }
+
+  // Extract from successful tool executions — capture what tools were used
   const successfulTools = interactions.filter(i => i.type === 'tool-execution' && i.success);
   if (successfulTools.length > 0) {
-    facts.push(`${successfulTools.length} tool executions succeeded`);
+    const toolNames = [...new Set(successfulTools.map(i => i.toolName!))];
+    facts.push(`Tools used: ${toolNames.join(', ')}`);
   }
 
   // Extract from failed tool executions
   const failedTools = interactions.filter(i => i.type === 'tool-execution' && !i.success);
   if (failedTools.length > 0) {
-    facts.push(`${failedTools.length} tool executions failed`);
+    const failedNames = [...new Set(failedTools.map(i => i.toolName!))];
+    facts.push(`Failed tools: ${failedNames.join(', ')}`);
+  }
+
+  // Extract from agent responses — capture key outcomes
+  const agentResponses = interactions.filter(i => i.type === 'agent-response');
+  if (agentResponses.length > 0) {
+    const lastResponse = agentResponses[agentResponses.length - 1].content;
+    if (lastResponse.length > 20) {
+      facts.push(`Last outcome: ${lastResponse.slice(0, 80)}`);
+    }
   }
 
   // Detect communication style
-  const userMessages = interactions.filter(i => i.type === 'user-message');
   if (userMessages.length > 0) {
     const avgLength = userMessages.reduce((sum, m) => sum + m.content.length, 0) / userMessages.length;
     if (avgLength > 200) {
@@ -70,9 +87,27 @@ export function extractKeyFacts(interactions: Interaction[]): string[] {
 }
 
 function extractChanges(interactions: Interaction[]): string[] {
-  return interactions
-    .filter(i => i.type === 'tool-execution' && i.success && i.toolName === 'write')
-    .map(i => i.content);
+  const changes: string[] = [];
+
+  // Capture write tool calls (file creation/modification)
+  for (const i of interactions) {
+    if (i.type === 'tool-execution' && i.success && i.toolName === 'write' && i.content) {
+      changes.push(`Created/modified file: ${i.content}`);
+    }
+    // Capture edit tool calls
+    if (i.type === 'tool-execution' && i.success && i.toolName === 'edit' && i.content) {
+      changes.push(`Edited: ${i.content}`);
+    }
+    // Capture bash/shell commands that suggest project-level changes
+    if (i.type === 'tool-execution' && i.success && i.toolName === 'bash' && i.content) {
+      if (i.content.includes('npm') || i.content.includes('git') || i.content.includes('cargo')) {
+        changes.push(`Ran: ${i.content.slice(0, 60)}`);
+      }
+    }
+  }
+
+  // Deduplicate
+  return [...new Set(changes)].slice(0, 10);
 }
 
 export function extractDecisions(interactions: Interaction[]): string[] {

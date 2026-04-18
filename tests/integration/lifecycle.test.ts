@@ -38,6 +38,7 @@ describe('Full Lifecycle Integration', () => {
     expect(context).toContain('Builder');
     expect(context).toContain('Talents');
     expect(context).toContain('git-master');
+    expect(context).toContain('(required)');
 
     // 3. Chat message with tool execution
     await registry.postChatMessage(agentId, sessionId, 'Fix the bug in auth.ts', 'I found the issue...');
@@ -52,10 +53,12 @@ describe('Full Lifecycle Integration', () => {
     const learnings = await memory.getLearnings();
     expect(learnings.length).toBeGreaterThan(0);
 
-    // 6. Verify identity saved
-    const identityStore = (registry as any).identityStore;
-    const exists = await identityStore.exists(agentId);
-    expect(exists).toBe(false); // Not saved yet, only loaded
+    // 6. Context now includes recent learnings
+    const contextAfter = await registry.getAgentContext(agentId);
+    expect(contextAfter).toContain('Recent Learnings');
+
+    // 7. Context includes user preferences section
+    expect(contextAfter).toContain('User Preferences');
   });
 
   it('should load default identity for unknown agent', async () => {

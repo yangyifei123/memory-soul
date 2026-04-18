@@ -383,9 +383,45 @@ await this.executeHooks('session.start', context);
     const identityContext = this.identityStore.toContext(identity);
 
     let result = identityContext;
+
+    // Inject talents with required/required markers
     if (skillNames.length > 0) {
       result += '\n\n## Talents (auto-load skills)\n';
-      result += skillNames.map(s => `- ${s}`).join('\n');
+      const talentsConfig = await this.talentsStore.load(agentId);
+      result += talentsConfig.skills
+        .sort((a, b) => b.priority - a.priority)
+        .map(s => `- ${s.name}${s.required ? ' (required)' : ''} — ${s.reason}`)
+        .join('\n');
+    }
+
+    // Inject recent learnings into context (top 10, most recent first)
+    const memory = this.getAgentMemory(agentId);
+    const learnings = await memory.getLearnings();
+    if (learnings.length > 0) {
+      const recentLearnings = learnings
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 10);
+      result += '\n\n## Recent Learnings\n';
+      result += recentLearnings.map(l => `- ${l.content}`).join('\n');
+    }
+
+    // Inject user preferences relevant to this agent
+    const prefs = await this.userModel.load();
+    if (prefs) {
+      const prefItems: string[] = [];
+      if (prefs.communicationStyle) {
+        prefItems.push(`Communication: ${prefs.communicationStyle}`);
+      }
+      if (prefs.technicalLevel) {
+        prefItems.push(`Technical level: ${prefs.technicalLevel}`);
+      }
+      if (prefs.preferredPatterns && prefs.preferredPatterns.length > 0) {
+        prefItems.push(`Patterns: ${prefs.preferredPatterns.join(', ')}`);
+      }
+      if (prefItems.length > 0) {
+        result += '\n\n## User Preferences\n';
+        result += prefItems.map(p => `- ${p}`).join('\n');
+      }
     }
 
     return result;

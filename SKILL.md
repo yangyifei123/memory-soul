@@ -97,16 +97,19 @@ interface MemoryEntry {
 ```
 1. Load identity from .opencode/memory-soul/identities/{agentId}.json
    - If not exists, use defaults from identity/defaults.ts
+   - Serialize to markdown context via toContext() (<400 tokens)
 2. Load talents from .opencode/memory-soul/talents/{agentId}.json
    - If not exists, use defaults from talents/defaults.ts
    - Sort skills by priority (highest first)
-   - Emit skill load commands for required skills
-3. Load recent memories and session history
-   - Feed relevant learnings into context
-4. On session end:
-   a. Summarize session (intent, changes, decisions, next steps)
-   b. Consolidate memories (merge similar entries)
-   c. Deduplicate (remove redundant memories)
+   - Display skill names with required flag and reason
+3. Load recent learnings (top 10, most recent first)
+   - Inject into agent context as "Recent Learnings" section
+4. Load user preferences (communication style, technical level, patterns)
+   - Inject into agent context as "User Preferences" section
+5. On session end:
+    a. Summarize session (user goal, tools used, changes made, decisions, next steps)
+    b. Consolidate memories (learnings=additive, preferences=replace)
+    c. Deduplicate (hash + Jaccard similarity with stop words)
 ```
 
 ## Memory Commands

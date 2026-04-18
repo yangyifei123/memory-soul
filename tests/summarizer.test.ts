@@ -105,7 +105,8 @@ describe('SessionSummarizer', () => {
 
       const facts = extractKeyFacts(interactions);
 
-      expect(facts).toContain('1 tool executions failed');
+      expect(facts.length).toBeGreaterThan(0);
+      expect(facts[0]).toContain('Failed tools');
     });
   });
 });

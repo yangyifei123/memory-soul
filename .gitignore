@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.opencode/
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.sisyphus/

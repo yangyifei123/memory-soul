@@ -1,17 +1,6 @@
 import * as crypto from 'crypto';
 import { MemoryEntry } from './interfaces';
-
-const STOP_WORDS = new Set([
-  'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
-  'her', 'was', 'one', 'our', 'out', 'has', 'his', 'how', 'its', 'its',
-  'new', 'now', 'old', 'see', 'way', 'who', 'oil', 'sit', 'use', 'get',
-  'day', 'lot', 'say', 'she', 'too', 'two', 'want', 'well', 'been', 'call',
-  'come', 'each', 'find', 'give', 'good', 'here', 'just', 'know', 'look',
-  'made', 'make', 'more', 'most', 'must', 'name', 'need', 'next', 'only',
-  'over', 'part', 'same', 'some', 'such', 'take', 'than', 'that', 'their',
-  'them', 'then', 'there', 'these', 'they', 'this', 'time', 'turn', 'under',
-  'very', 'what', 'when', 'where', 'which', 'will', 'with', 'work', 'your'
-]);
+import { STOP_WORDS } from '../shared/constants';
 
 /**
  * Generate content hash for deduplication.

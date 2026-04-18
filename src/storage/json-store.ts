@@ -45,7 +45,7 @@ export class JsonStore implements IMemoryStore {
     try {
       return JSON.parse(content) as T;
     } catch (e) {
-      console.warn(`[json-store] Corrupted JSON at ${filePath}, returning null`);
+      console.warn(`[json-store v1.0.0] Corrupted JSON at ${filePath}, returning default`);
       return defaultValue;
     }
   }

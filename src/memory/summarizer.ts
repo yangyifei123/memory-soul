@@ -75,7 +75,7 @@ function extractChanges(interactions: Interaction[]): string[] {
     .map(i => i.content);
 }
 
-function extractDecisions(interactions: Interaction[]): string[] {
+export function extractDecisions(interactions: Interaction[]): string[] {
   // Detect decisions from user messages containing decision keywords
   const decisions: string[] = [];
   const decisionKeywords = ['use', 'choose', 'select', 'go with', 'decided', 'will', 'switch'];
@@ -94,7 +94,7 @@ function extractDecisions(interactions: Interaction[]): string[] {
   return decisions.slice(0, 5);
 }
 
-function extractNextSteps(session: SessionMemory): string[] {
+export function extractNextSteps(session: SessionMemory): string[] {
   // If session ended without completion, suggest next steps
   const steps: string[] = [];
 

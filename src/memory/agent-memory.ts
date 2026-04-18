@@ -55,12 +55,12 @@ export class AgentMemory {
     return path.join(this.basePath, type + '-index.json');
   }
 
-  private safeJsonParse<T>(content: string, filePath: string, defaultValue: T): T {
+  private safeJsonParse(content: string, filePath: string): unknown {
     try {
-      return JSON.parse(content) as T;
+      return JSON.parse(content);
     } catch (e) {
-      console.warn(`[memory-soul] Corrupted JSON at ${filePath}, returning null`);
-      return defaultValue;
+      console.warn(`[memory-soul v1.0.0] Corrupted JSON at ${filePath}: returning null`);
+      return null;
     }
   }
 
@@ -68,7 +68,8 @@ export class AgentMemory {
     const indexPath = this.getIndexPath(type);
     if (fs.existsSync(indexPath)) {
       const content = fs.readFileSync(indexPath, 'utf-8');
-      return this.safeJsonParse(content, indexPath, []);
+      const result = this.safeJsonParse(content, indexPath);
+      if (Array.isArray(result)) return result as string[];
     }
     return [];
   }
@@ -85,7 +86,8 @@ export class AgentMemory {
       return undefined;
     }
     const content = fs.readFileSync(filePath, 'utf-8');
-    return this.safeJsonParse<SessionMemory>(content, filePath, undefined as any);
+    const result = this.safeJsonParse(content, filePath);
+    return result as SessionMemory | undefined;
   }
 
   async saveSession(session: SessionMemory): Promise<void> {
@@ -115,12 +117,12 @@ export class AgentMemory {
     const index = this.readIndex('sessions');
     const sessions: SessionMemory[] = [];
     const toLoad = index.slice(-limit).reverse();
-    
+
     for (const sessionId of toLoad) {
       const session = await this.getSession(sessionId);
       if (session) sessions.push(session);
     }
-    
+
     return sessions;
   }
 
@@ -157,7 +159,7 @@ export class AgentMemory {
       const filePath = this.getMemoryPath(memoryId);
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        const memory = this.safeJsonParse<MemoryEntry>(content, filePath, null as any);
+        const memory = this.safeJsonParse(content, filePath) as MemoryEntry | null;
         if (memory && (!scope || memory.scope === scope)) {
           memories.push(memory);
         }
@@ -187,14 +189,14 @@ export class AgentMemory {
       id: generateId(),
       timestamp: Date.now()
     };
-    
+
     const filePath = this.getInteractionPath(fullInteraction.id);
     fs.writeFileSync(filePath, JSON.stringify(fullInteraction, null, 2), 'utf-8');
-    
+
     const index = this.readIndex('interactions');
     index.push(fullInteraction.id);
     this.writeIndex('interactions', index);
-    
+
     return fullInteraction;
   }
 
@@ -207,7 +209,7 @@ export class AgentMemory {
       const filePath = this.getInteractionPath(interactionId);
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        const interaction = this.safeJsonParse<Interaction>(content, filePath, null as any);
+        const interaction = this.safeJsonParse(content, filePath) as Interaction | null;
         if (interaction) {
           interactions.push(interaction);
         }
@@ -223,27 +225,27 @@ export class AgentMemory {
     focusAreas: string[] = []
   ): Promise<string[]> {
     const learnings: string[] = [];
-    
+
     const successfulInteractions = session.interactions.filter(
       i => i.type === 'tool-execution' && i.success
     );
-    
+
     if (successfulInteractions.length > 0) {
       learnings.push(
         this.agentId + ' successfully executed ' + successfulInteractions.length + ' tools in session ' + session.sessionId
       );
     }
-    
+
     const avgLength = session.interactions.reduce(
       (sum, i) => sum + i.content.length, 0
     ) / session.interactions.length;
-    
+
     if (avgLength > 500) {
       learnings.push('User prefers detailed responses');
     } else if (avgLength < 100) {
       learnings.push('User prefers concise responses');
     }
-    
+
     return learnings;
   }
 
@@ -251,7 +253,7 @@ export class AgentMemory {
   async detectPatterns(interactions: Interaction[]): Promise<Pattern[]> {
     const patterns: Pattern[] = [];
     const toolGroups = new Map<string, Interaction[]>();
-    
+
     for (const interaction of interactions) {
       if (interaction.toolName) {
         const group = toolGroups.get(interaction.toolName) || [];
@@ -259,7 +261,7 @@ export class AgentMemory {
         toolGroups.set(interaction.toolName, group);
       }
     }
-    
+
     for (const [toolName, toolInteractions] of toolGroups) {
       if (toolInteractions.length >= 3) {
         const successCount = toolInteractions.filter(i => i.success).length;
@@ -276,7 +278,7 @@ export class AgentMemory {
         });
       }
     }
-    
+
     return patterns;
   }
 
@@ -286,7 +288,7 @@ export class AgentMemory {
     const memories = await this.getMemories();
     const interactions = await this.getRecentInteractions(100);
     const patterns = await this.detectPatterns(interactions);
-    
+
     return {
       agentId: this.agentId,
       sessionHistory: sessions,

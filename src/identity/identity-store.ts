@@ -29,7 +29,7 @@ export class IdentityStore {
     try {
       return JSON.parse(content) as T;
     } catch (e) {
-      console.warn(`[identity-store] Corrupted JSON at ${filePath}, returning null`);
+      console.warn(`[identity-store v1.0.0] Corrupted JSON at ${filePath}, returning default`);
       return defaultValue;
     }
   }

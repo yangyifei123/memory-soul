@@ -68,6 +68,20 @@ function findMergeCandidate(
   );
 }
 
+/**
+ * Determine whether a new entry should replace an existing one.
+ *
+ * Merge strategy per memory type:
+ * - learnings: NEVER replace (always add new, dedup handles duplicates)
+ * - preferences: ALWAYS replace (latest wins)
+ * - context: ALWAYS replace (latest wins)
+ * - patterns: NEVER replace (additive only)
+ * - default: NEVER replace
+ *
+ * @param newEntry - The candidate new entry
+ * @param existing - The existing entry to potentially replace
+ * @returns true if the existing entry should be replaced, false otherwise
+ */
 function shouldReplace(
   newEntry: Omit<MemoryEntry, 'id' | 'timestamp'>,
   existing: MemoryEntry

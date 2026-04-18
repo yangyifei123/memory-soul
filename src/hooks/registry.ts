@@ -328,13 +328,21 @@ async onSessionEnd(
       // Consolidate with dedup
       const result = consolidate(newEntries, existingMemories);
 
-      // Persist
+      // Persist new and updated memories
       for (const entry of result.added) {
         await memory.addMemory(entry);
       }
       // Update existing entries by re-saving
       for (const entry of result.updated) {
         await memory.updateMemory(entry);
+      }
+
+      // Log summary of what was learned
+      const summaryCount = result.added.length + result.updated.length;
+      const skippedCount = result.skipped.length;
+      if (summaryCount > 0 || skippedCount > 0) {
+        // Note: Using console.warn to ensure visibility in agent logs
+        console.warn(`[memory-soul] Session ${sessionId}: ${summaryCount} memories saved, ${skippedCount} duplicates skipped`);
       }
     }
 

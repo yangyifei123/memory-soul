@@ -24,7 +24,7 @@ export class TalentsStore {
     try {
       return JSON.parse(content) as T;
     } catch (e) {
-      console.warn(`[talents-store] Corrupted JSON at ${filePath}, returning null`);
+      console.warn(`[talents-store v1.0.0] Corrupted JSON at ${filePath}, returning default`);
       return defaultValue;
     }
   }

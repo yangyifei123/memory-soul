@@ -41,6 +41,15 @@ export class JsonStore implements IMemoryStore {
     return path.join(this.basePath, sanitized + '.json');
   }
 
+  private safeJsonParse<T>(content: string, filePath: string, defaultValue: T): T {
+    try {
+      return JSON.parse(content) as T;
+    } catch (e) {
+      console.warn(`[json-store] Corrupted JSON at ${filePath}, returning null`);
+      return defaultValue;
+    }
+  }
+
   private async acquireLock(key: string): Promise<() => void> {
     const lockKey = 'lock_' + key;
     while (this.locks.has(lockKey)) {
@@ -67,7 +76,7 @@ export class JsonStore implements IMemoryStore {
         return undefined;
       }
       const content = fs.readFileSync(filePath, 'utf-8');
-      return JSON.parse(content);
+      return this.safeJsonParse<unknown>(content, filePath, undefined);
     } finally {
       release();
     }
@@ -116,7 +125,7 @@ export class JsonStore implements IMemoryStore {
     const indexPath = path.join(this.basePath, '_index.json');
     if (fs.existsSync(indexPath)) {
       const content = fs.readFileSync(indexPath, 'utf-8');
-      return JSON.parse(content);
+      return this.safeJsonParse<Record<string, unknown>>(content, indexPath, {});
     }
     return {};
   }

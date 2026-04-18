@@ -55,11 +55,20 @@ export class AgentMemory {
     return path.join(this.basePath, type + '-index.json');
   }
 
+  private safeJsonParse<T>(content: string, filePath: string, defaultValue: T): T {
+    try {
+      return JSON.parse(content) as T;
+    } catch (e) {
+      console.warn(`[memory-soul] Corrupted JSON at ${filePath}, returning null`);
+      return defaultValue;
+    }
+  }
+
   private readIndex(type: 'sessions' | 'memories' | 'interactions'): string[] {
     const indexPath = this.getIndexPath(type);
     if (fs.existsSync(indexPath)) {
       const content = fs.readFileSync(indexPath, 'utf-8');
-      return JSON.parse(content);
+      return this.safeJsonParse(content, indexPath, []);
     }
     return [];
   }
@@ -76,7 +85,7 @@ export class AgentMemory {
       return undefined;
     }
     const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content);
+    return this.safeJsonParse<SessionMemory>(content, filePath, undefined as any);
   }
 
   async saveSession(session: SessionMemory): Promise<void> {
@@ -122,32 +131,39 @@ export class AgentMemory {
       id: generateId(),
       timestamp: Date.now()
     };
-    
+
     const filePath = this.getMemoryPath(fullEntry.id);
     fs.writeFileSync(filePath, JSON.stringify(fullEntry, null, 2), 'utf-8');
-    
+
     const index = this.readIndex('memories');
     index.push(fullEntry.id);
     this.writeIndex('memories', index);
-    
+
     return fullEntry;
+  }
+
+  async updateMemory(entry: MemoryEntry): Promise<void> {
+    const filePath = this.getMemoryPath(entry.id);
+    if (fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify(entry, null, 2), 'utf-8');
+    }
   }
 
   async getMemories(scope?: string): Promise<MemoryEntry[]> {
     const index = this.readIndex('memories');
     const memories: MemoryEntry[] = [];
-    
+
     for (const memoryId of index) {
       const filePath = this.getMemoryPath(memoryId);
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        const memory = JSON.parse(content) as MemoryEntry;
-        if (!scope || memory.scope === scope) {
+        const memory = this.safeJsonParse<MemoryEntry>(content, filePath, null as any);
+        if (memory && (!scope || memory.scope === scope)) {
           memories.push(memory);
         }
       }
     }
-    
+
     return memories.sort((a, b) => b.timestamp - a.timestamp);
   }
 
@@ -186,15 +202,18 @@ export class AgentMemory {
     const index = this.readIndex('interactions');
     const interactions: Interaction[] = [];
     const toLoad = index.slice(-limit).reverse();
-    
+
     for (const interactionId of toLoad) {
       const filePath = this.getInteractionPath(interactionId);
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        interactions.push(JSON.parse(content));
+        const interaction = this.safeJsonParse<Interaction>(content, filePath, null as any);
+        if (interaction) {
+          interactions.push(interaction);
+        }
       }
     }
-    
+
     return interactions;
   }
 

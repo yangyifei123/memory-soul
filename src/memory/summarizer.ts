@@ -4,14 +4,16 @@ export function summarizeSession(session: SessionMemory): SessionSummary {
   const toolUsage = buildToolUsageSummary(session.interactions);
   const keyFacts = extractKeyFacts(session.interactions);
   const changesMade = extractChanges(session.interactions);
+  const decisionsTaken = extractDecisions(session.interactions);
+  const nextSteps = extractNextSteps(session);
 
   return {
     sessionId: session.sessionId,
     agentId: session.agentId,
     intent: inferIntent(session.interactions),
     changesMade,
-    decisionsTaken: [],
-    nextSteps: [],
+    decisionsTaken,
+    nextSteps,
     keyFacts,
     toolUsage,
     startTime: session.startTime,
@@ -71,6 +73,41 @@ function extractChanges(interactions: Interaction[]): string[] {
   return interactions
     .filter(i => i.type === 'tool-execution' && i.success && i.toolName === 'write')
     .map(i => i.content);
+}
+
+function extractDecisions(interactions: Interaction[]): string[] {
+  // Detect decisions from user messages containing decision keywords
+  const decisions: string[] = [];
+  const decisionKeywords = ['use', 'choose', 'select', 'go with', 'decided', 'will', 'switch'];
+
+  for (const i of interactions) {
+    if (i.type === 'user-message') {
+      const lower = i.content.toLowerCase();
+      for (const keyword of decisionKeywords) {
+        if (lower.includes(keyword)) {
+          decisions.push(i.content.slice(0, 100));
+          break;
+        }
+      }
+    }
+  }
+  return decisions.slice(0, 5);
+}
+
+function extractNextSteps(session: SessionMemory): string[] {
+  // If session ended without completion, suggest next steps
+  const steps: string[] = [];
+
+  // Only suggest retrying failed tools if there actually are failed tools AND the session had proper start/end
+  const pendingTools = session.interactions.filter(
+    i => i.type === 'tool-execution' && !i.success
+  );
+
+  if (pendingTools.length > 0 && session.endTime) {
+    steps.push(`Retry ${pendingTools.length} failed tool executions`);
+  }
+
+  return steps;
 }
 
 function inferIntent(interactions: Interaction[]): string {

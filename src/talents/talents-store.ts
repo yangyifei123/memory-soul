@@ -20,11 +20,20 @@ export class TalentsStore {
     return path.join(this.basePath, sanitizeAgentId(agentId) + '.json');
   }
 
+  private safeJsonParse<T>(content: string, filePath: string, defaultValue: T): T {
+    try {
+      return JSON.parse(content) as T;
+    } catch (e) {
+      console.warn(`[talents-store] Corrupted JSON at ${filePath}, returning null`);
+      return defaultValue;
+    }
+  }
+
   async load(agentId: AgentId): Promise<AgentTalents> {
     const filePath = this.getTalentsPath(agentId);
     if (fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath, 'utf-8');
-      return JSON.parse(content);
+      return this.safeJsonParse<AgentTalents>(content, filePath, this.getDefault(agentId));
     }
     return this.getDefault(agentId);
   }

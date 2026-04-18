@@ -171,11 +171,22 @@ async postChatMessage(
     });
 
     // Also update session with the interaction
-    const session = await memory.getSession(sessionId);
-    if (session) {
-      session.interactions.push(interaction);
+    let session = await memory.getSession(sessionId);
+    if (!session) {
+      // Create session if missing (onSessionStart wasn't called)
+      session = {
+        sessionId,
+        agentId,
+        startTime: Date.now(),
+        interactions: [],
+        learnings: [],
+        preferences: {}
+      };
       await memory.saveSession(session);
     }
+
+    session.interactions.push(interaction);
+    await memory.saveSession(session);
 
     // Infer user preferences
     await this.userModel.inferPreferencesFromInteraction(message, agentId);
@@ -247,11 +258,22 @@ async postToolExecution(
     });
 
     // Also update session with the interaction
-    const session = await memory.getSession(sessionId);
-    if (session) {
-      session.interactions.push(interaction);
+    let session = await memory.getSession(sessionId);
+    if (!session) {
+      // Create session if missing (onSessionStart wasn't called)
+      session = {
+        sessionId,
+        agentId,
+        startTime: Date.now(),
+        interactions: [],
+        learnings: [],
+        preferences: {}
+      };
       await memory.saveSession(session);
     }
+
+    session.interactions.push(interaction);
+    await memory.saveSession(session);
 
     await this.executeHooks('tool.execute.after', context);
   }
@@ -279,7 +301,7 @@ async onSessionEnd(
       const summary = summarizeSession(session);
 
       // Get existing memories for dedup
-      const existingMemories = await memory.getLearnings();
+      const existingMemories = await memory.getMemories();  // Get ALL memories, not just learnings
 
       // Create memory entries from summary
       const newEntries = [
@@ -310,8 +332,9 @@ async onSessionEnd(
       for (const entry of result.added) {
         await memory.addMemory(entry);
       }
+      // Update existing entries by re-saving
       for (const entry of result.updated) {
-        await memory.addMemory(entry);
+        await memory.updateMemory(entry);
       }
     }
 

@@ -163,7 +163,7 @@ const talents = await store.load('sisyphus');
 
 // Get skill names sorted by priority
 const skills = store.getSkillNames(talents);
-// ['git-master', 'bug-fixing', 'testing-strategies', 'code-docs']
+// ['git-master', 'bug-fixing', 'testing-strategies']
 
 // Add skill
 await store.addSkill('sisyphus', {
@@ -174,7 +174,7 @@ await store.addSkill('sisyphus', {
 });
 
 // Remove skill
-await store.removeSkill('sisyphus', 'code-docs');
+await store.removeSkill('sisyphus', 'refactoring-safely');
 ```
 
 ## Default Agent Identities

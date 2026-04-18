@@ -72,10 +72,20 @@ function shouldReplace(
   newEntry: Omit<MemoryEntry, 'id' | 'timestamp'>,
   existing: MemoryEntry
 ): boolean {
-  // Replace preferences and context with newer
-  if (newEntry.type === 'preferences' || newEntry.type === 'context') {
-    return true;
+  // learnings: NEVER replace, always add separately (dedup handles duplicates)
+  if (newEntry.type === 'learnings') {
+    return false;  // Never replace learnings, always append new
   }
-  // Keep higher confidence
-  return newEntry.confidence > existing.confidence;
+
+  // preferences and context: replace with newer/higher confidence
+  if (newEntry.type === 'preferences' || newEntry.type === 'context') {
+    return true;  // Replace with latest
+  }
+
+  // patterns: merge by updating frequency (handled separately if needed)
+  if (newEntry.type === 'patterns') {
+    return false;  // Patterns are additive
+  }
+
+  return false;  // Default: don't replace
 }

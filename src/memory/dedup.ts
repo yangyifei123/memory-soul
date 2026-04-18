@@ -1,6 +1,18 @@
 import * as crypto from 'crypto';
 import { MemoryEntry } from './interfaces';
 
+const STOP_WORDS = new Set([
+  'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
+  'her', 'was', 'one', 'our', 'out', 'has', 'his', 'how', 'its', 'its',
+  'new', 'now', 'old', 'see', 'way', 'who', 'oil', 'sit', 'use', 'get',
+  'day', 'lot', 'say', 'she', 'too', 'two', 'want', 'well', 'been', 'call',
+  'come', 'each', 'find', 'give', 'good', 'here', 'just', 'know', 'look',
+  'made', 'make', 'more', 'most', 'must', 'name', 'need', 'next', 'only',
+  'over', 'part', 'same', 'some', 'such', 'take', 'than', 'that', 'their',
+  'them', 'then', 'there', 'these', 'they', 'this', 'time', 'turn', 'under',
+  'very', 'what', 'when', 'where', 'which', 'will', 'with', 'work', 'your'
+]);
+
 /**
  * Generate content hash for deduplication.
  * Normalizes whitespace and case for comparison.
@@ -13,9 +25,14 @@ export function contentHash(text: string): string {
 /**
  * Calculate Jaccard similarity between two texts.
  * Returns 0.0 (completely different) to 1.0 (identical).
+ * Uses stop word filtering to reduce false positives.
  */
 export function jaccardSimilarity(a: string, b: string): number {
-  const normalize = (s: string) => new Set(s.toLowerCase().trim().split(/\s+/).filter(w => w.length > 2));
+  const normalize = (s: string) => new Set(
+    s.toLowerCase().trim().split(/\s+/)
+      .filter(w => w.length > 2)
+      .filter(w => !STOP_WORDS.has(w))
+  );
   const setA = normalize(a);
   const setB = normalize(b);
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Memory-Soul: Hook Registry
  * Central registry for managing memory hooks
  */
@@ -11,6 +11,10 @@ import {
 } from '../memory/interfaces';
 import { AgentMemory, createAgentMemory } from '../memory/agent-memory';
 import { UserModel, createUserModel } from '../memory/user-model';
+import { summarizeSession } from '../memory/summarizer';
+import { consolidate } from '../memory/consolidator';
+import { createIdentityStore, IdentityStore } from '../identity/identity-store';
+import { createTalentsStore, TalentsStore } from '../talents/talents-store';
 
 export interface HookHandler {
   type: HookType;
@@ -30,18 +34,24 @@ export class MemoryHookRegistry {
   private agentMemories: Map<AgentId, AgentMemory>;
   private userModel: UserModel;
   private config: MemoryHookConfig;
+  private identityStore: IdentityStore;
+  private talentsStore: TalentsStore;
 
   constructor(config: MemoryHookConfig) {
     this.config = config;
     this.handlers = new Map();
     this.agentMemories = new Map();
-    
+
     // Initialize user model
     this.userModel = createUserModel({
       userId: config.userId,
       basePath: config.basePath
     });
-    
+
+    // Initialize identity and talents stores
+    this.identityStore = createIdentityStore({ basePath: config.basePath });
+    this.talentsStore = createTalentsStore({ basePath: config.basePath });
+
     // Initialize default handlers
     this.initializeDefaultHandlers();
   }
@@ -138,7 +148,7 @@ export class MemoryHookRegistry {
     };
   }
 
-  async postChatMessage(
+async postChatMessage(
     agentId: AgentId,
     sessionId: string,
     message: string,
@@ -151,18 +161,25 @@ export class MemoryHookRegistry {
       payload: { message, response },
       timestamp: Date.now()
     };
-    
+
     // Save interaction to agent memory
     const memory = this.getAgentMemory(agentId);
-    await memory.addInteraction({
+    const interaction = await memory.addInteraction({
       type: 'agent-response',
       content: response,
       success: true
     });
-    
+
+    // Also update session with the interaction
+    const session = await memory.getSession(sessionId);
+    if (session) {
+      session.interactions.push(interaction);
+      await memory.saveSession(session);
+    }
+
     // Infer user preferences
     await this.userModel.inferPreferencesFromInteraction(message, agentId);
-    
+
     await this.executeHooks('chat.message.post', context);
   }
 
@@ -202,7 +219,7 @@ export class MemoryHookRegistry {
     return { allowed: true, modifiedParams };
   }
 
-  async postToolExecution(
+async postToolExecution(
     agentId: AgentId,
     sessionId: string,
     toolName: string,
@@ -218,21 +235,28 @@ export class MemoryHookRegistry {
       payload: { toolName, params, result, success, duration },
       timestamp: Date.now()
     };
-    
+
     // Save tool execution to memory
     const memory = this.getAgentMemory(agentId);
-    await memory.addInteraction({
+    const interaction = await memory.addInteraction({
       type: 'tool-execution',
       content: `Tool ${toolName} executed with ${success ? 'success' : 'failure'}`,
       toolName,
       success,
       duration
     });
-    
+
+    // Also update session with the interaction
+    const session = await memory.getSession(sessionId);
+    if (session) {
+      session.interactions.push(interaction);
+      await memory.saveSession(session);
+    }
+
     await this.executeHooks('tool.execute.after', context);
   }
 
-  async onSessionEnd(
+async onSessionEnd(
     agentId: AgentId,
     sessionId: string
   ): Promise<void> {
@@ -243,29 +267,54 @@ export class MemoryHookRegistry {
       payload: {},
       timestamp: Date.now()
     };
-    
+
     // Save session end
     const memory = this.getAgentMemory(agentId);
     const session = await memory.getSession(sessionId);
     if (session) {
       session.endTime = Date.now();
       await memory.saveSession(session);
-      
-      // Extract learnings from session
-      const learnings = await memory.extractLearnings(session);
-      for (const learning of learnings) {
-        await memory.addMemory({
+
+      // Summarize session
+      const summary = summarizeSession(session);
+
+      // Get existing memories for dedup
+      const existingMemories = await memory.getLearnings();
+
+      // Create memory entries from summary
+      const newEntries = [
+        ...summary.keyFacts.map(fact => ({
           agentId,
-          scope: 'persistent',
-          type: 'learnings',
-          content: learning,
+          scope: 'persistent' as const,
+          type: 'learnings' as const,
+          content: fact,
           confidence: 0.7,
-          source: 'agent',
+          source: 'agent' as const,
           tags: ['session-summary']
-        });
+        })),
+        ...summary.changesMade.map(change => ({
+          agentId,
+          scope: 'persistent' as const,
+          type: 'context' as const,
+          content: change,
+          confidence: 0.8,
+          source: 'agent' as const,
+          tags: ['changes']
+        }))
+      ];
+
+      // Consolidate with dedup
+      const result = consolidate(newEntries, existingMemories);
+
+      // Persist
+      for (const entry of result.added) {
+        await memory.addMemory(entry);
+      }
+      for (const entry of result.updated) {
+        await memory.addMemory(entry);
       }
     }
-    
+
     await this.executeHooks('session.end', context);
   }
 
@@ -292,7 +341,23 @@ export class MemoryHookRegistry {
       preferences: {}
     });
     
-    await this.executeHooks('session.start', context);
+await this.executeHooks('session.start', context);
+  }
+
+  async getAgentContext(agentId: AgentId): Promise<string> {
+    const identity = await this.identityStore.load(agentId);
+    const talents = await this.talentsStore.load(agentId);
+    const skillNames = this.talentsStore.getSkillNames(talents);
+
+    const identityContext = this.identityStore.toContext(identity);
+
+    let result = identityContext;
+    if (skillNames.length > 0) {
+      result += '\n\n## Talents (auto-load skills)\n';
+      result += skillNames.map(s => `- ${s}`).join('\n');
+    }
+
+    return result;
   }
 }
 

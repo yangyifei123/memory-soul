@@ -30,9 +30,9 @@ describe('Corrupted JSON Recovery', () => {
     // Corrupt the file
     const sessionPath = path.join(testDir, 'agents', 'sisyphus', 'sessions', 's1.json');
     fs.writeFileSync(sessionPath, '{INVALID JSON', 'utf-8');
-    // Should return undefined instead of crashing
+    // Should return null instead of crashing
     const session = await memory.getSession('s1');
-    expect(session).toBeUndefined();
+    expect(session).toBeNull();
   });
 
   it('IdentityStore returns default for corrupted identity JSON', async () => {
@@ -50,10 +50,11 @@ describe('Corrupted JSON Recovery', () => {
     // Corrupt the file
     const idPath = path.join(testDir, 'identities', 'sisyphus.json');
     fs.writeFileSync(idPath, '{INVALID JSON', 'utf-8');
-    // Should return default instead of crashing
+    // Should return default identity instead of crashing
     const identity = await store.load('sisyphus');
     expect(identity.name).toBe('Sisyphus');
-    expect(identity.role).toBe('Builder');
+    expect(identity.role).toContain('Builder');
+    expect(identity.role).toContain('Orchestrator');
   });
 
   it('TalentsStore returns default for corrupted talents JSON', async () => {

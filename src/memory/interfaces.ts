@@ -148,3 +148,23 @@ export interface AgentTalents {
   autoLoad: boolean;
   updatedAt: number;
 }
+
+// Phase 4 - Session Summarization
+export interface SessionSummary {
+  sessionId: string;
+  agentId: AgentId;
+  intent: string;
+  changesMade: string[];
+  decisionsTaken: string[];
+  nextSteps: string[];
+  keyFacts: string[];
+  toolUsage: ToolUsageSummary[];
+  startTime: number;
+  endTime: number;
+}
+
+export interface ToolUsageSummary {
+  tool: string;
+  count: number;
+  successRate: number;
+}

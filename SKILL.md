@@ -76,17 +76,25 @@ interface TalentSkill {
 
 ### Memory
 
-Persistent learnings and patterns. Types: `learnings`, `preferences`, `patterns`, `context`.
+Persistent learnings and patterns. Three scopes:
+
+| Scope | Lifetime | Use Case |
+|-------|----------|----------|
+| `persistent` | Forever (until deleted) | User preferences, important learnings |
+| `session` | Until session ends | Temporary context for current task |
+| `ephemeral` | Until memory cleanup | Short-lived scratchpad data |
+
+**Memory Types**: `learnings` | `preferences` | `patterns` | `context`
 
 ```typescript
 interface MemoryEntry {
   id: string;
   agentId: AgentId;
   scope: 'persistent' | 'session' | 'ephemeral';
-  type: MemoryType;
+  type: 'learnings' | 'preferences' | 'patterns' | 'context';
   content: string;
   timestamp: number;
-  confidence: number;
+  confidence: number;      // 0.0-1.0, higher = more confident
   source: 'user' | 'agent' | 'evolution' | 'system';
   tags: string[];
 }
@@ -142,6 +150,39 @@ const learnings = await agentMemory.getLearnings();
 
 // Extract learnings from session
 const sessionLearnings = await agentMemory.extractLearnings(session);
+
+// Search memories by content
+const results = await agentMemory.searchMemories('user preference');
+
+// Get memory count
+const count = await agentMemory.getMemoryCount();
+
+// Delete a memory
+await agentMemory.deleteMemory(memoryId);
+
+// Cleanup expired memories
+const cleaned = await agentMemory.cleanupExpired();
+```
+
+## Advanced Memory API
+
+```typescript
+// Get memory statistics
+const stats = await agentMemory.getMemoryStats();
+// Returns: { totalMemories, byScope, byType, oldestMemory, newestMemory }
+
+// Add learning via convenience method (preferred approach)
+await registry.addLearning('sisyphus', 'User prefers TypeScript over JavaScript', 0.9);
+
+// Get recent sessions
+const sessions = await agentMemory.getRecentSessions(5);
+
+// Detect frequent patterns
+const patterns = await agentMemory.detectPatterns();
+// Returns: { toolUsage: {...}, successRate: {...}, ... }
+
+// Get success rate for a tool
+const rate = await agentMemory.getSuccessRate('bash');
 ```
 
 ## Identity Commands
@@ -203,6 +244,10 @@ await store.removeSkill('sisyphus', 'refactoring-safely');
 
 ## Hooks
 
+**Hook Types**: `session.start` | `session.end` | `chat.message.pre` | `chat.message.post` | `tool.execute.before` | `tool.execute.after`
+
+**HookResult**: `{ success: boolean, data?: unknown }`
+
 ```typescript
 // Pre-chat message (inject context)
 const result = await registry.preChatMessage('sisyphus', sessionId, userMessage);
@@ -213,6 +258,10 @@ await registry.postChatMessage('sisyphus', sessionId, userMessage, response);
 
 // Tool execution hooks
 await registry.postToolExecution('sisyphus', sessionId, 'bash', params, result, true, 150);
+
+// Pre-tool execution (can modify params or block)
+const toolCheck = await registry.preToolExecution('sisyphus', sessionId, 'bash', params);
+// Returns: { allowed: boolean, modifiedParams?: Record<string, unknown> }
 ```
 
 ## Installation
@@ -222,6 +271,7 @@ await registry.postToolExecution('sisyphus', sessionId, 'bash', params, result, 
 - Node.js 18+ (required for the library)
 - Git (required for cloning)
 - npm (comes with Node.js)
+- **Offline-ready**: No network required after installation — all data stored locally
 
 ### Option A: Local Development (Recommended)
 

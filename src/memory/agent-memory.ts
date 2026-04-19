@@ -282,6 +282,34 @@ export class AgentMemory {
     return patterns;
   }
 
+  async deleteMemory(memoryId: string): Promise<boolean> {
+    const filePath = this.getMemoryPath(memoryId);
+    if (!fs.existsSync(filePath)) return false;
+    fs.unlinkSync(filePath);
+    
+    // Update index
+    const index = this.readIndex('memories');
+    const filtered = index.filter(id => id !== memoryId);
+    this.writeIndex('memories', filtered);
+    return true;
+  }
+
+  async searchMemories(query: string, limit: number = 20): Promise<MemoryEntry[]> {
+    if (!query || query.trim().length === 0) return [];
+    const allMemories = await this.getMemories();
+    const lowerQuery = query.toLowerCase();
+    const scored = allMemories.map(m => ({
+      entry: m,
+      score: m.content.toLowerCase().includes(lowerQuery) ? 1 : 0
+    })).filter(s => s.score > 0);
+    return scored.slice(0, limit).map(s => s.entry);
+  }
+
+  async getMemoryCount(): Promise<number> {
+    const index = this.readIndex('memories');
+    return index.length;
+  }
+
   // Agent Learnings Summary
   async getLearningsSummary(): Promise<AgentLearnings> {
     const sessions = await this.getRecentSessions(20);

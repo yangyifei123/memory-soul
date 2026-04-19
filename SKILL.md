@@ -11,6 +11,23 @@ description: Persistent memory, identity, and talents system for opencode agents
 - **Talents**: Default skills auto-loaded per agent type (e.g., sisyphus gets git-master, bug-fixing)
 - **Memory**: Persistent learnings, preferences, and patterns across sessions with deduplication
 
+## Quick Reference
+
+| Command | Usage |
+|---------|-------|
+| `createMemoryHookRegistry({userId})` | Initialize registry |
+| `registry.onSessionStart(agentId, sessionId)` | Start session |
+| `registry.onSessionEnd(agentId, sessionId)` | End session, save learnings |
+| `registry.getAgentContext(agentId)` | Get identity + talents + memories for context |
+| `registry.addLearning(agentId, content, confidence)` | Add learning |
+| `createIdentityStore({basePath})` | Create identity store |
+| `createTalentsStore({basePath})` | Create talents store |
+| `createAgentMemory({agentId, basePath})` | Create memory instance |
+
+**Memory Scopes**: `persistent` (forever) | `session` (until end) | `ephemeral` (temp)
+**Memory Types**: `learnings` | `preferences` | `patterns` | `context`
+**Hook Types**: `session.start` | `session.end` | `chat.message.pre` | `chat.message.post` | `tool.execute.before` | `tool.execute.after`
+
 ## When to Activate
 
 Triggers for loading this skill:

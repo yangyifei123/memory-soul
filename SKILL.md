@@ -459,6 +459,41 @@ rm -rf node_modules/
 
 **Windows path issues**: Replace `~/.agents/` with `%USERPROFILE%\.agents\` on Windows. Use `dir` instead of `ls`.
 
+## Migration & Compatibility
+
+**Version 1.0.0**:
+- Initial stable release
+- No breaking changes from v0.x (if you were using pre-1.0 versions)
+
+**TypeScript Support**:
+- Full TypeScript support with `dist/index.d.ts` type definitions
+- All interfaces exported from `memory-soul/interfaces`
+- Compatible with TypeScript 5.x+
+
+**Environment Variables**:
+```typescript
+// Configure via code (no env vars currently)
+const registry = createMemoryHookRegistry({
+  userId: process.env.MEMORY_SOUL_USER_ID || 'default',
+  basePath: process.env.MEMORY_SOUL_BASE_PATH || '.opencode/memory-soul'
+});
+```
+
+**Docker/Container Environments**:
+- Data persists in `.opencode/memory-soul/` — mount as volume
+- Ensure write permissions for the user running opencode
+- Example: `docker run -v $(pwd)/.opencode:/app/.opencode ...`
+
+**CI/CD Testing**:
+- Tests can run with temporary basePath (e.g., `/tmp/memory-soul-test`)
+- Auto-cleanup on test completion
+- No network required — fully offline
+
+**Multi-Project Shared Memory**:
+- Use same `basePath` across projects for shared memory
+- Different `userId` for different users within shared memory
+- Not recommended — memory-soul is designed per-project
+
 ## Verification Steps
 
 After installation, verify everything works:

@@ -115,6 +115,14 @@ interface MemoryEntry {
 ## Memory Commands
 
 ```typescript
+import { createAgentMemory } from 'memory-soul';
+
+// Create agent memory instance
+const agentMemory = createAgentMemory({
+  agentId: 'sisyphus',
+  basePath: '.opencode/memory-soul'
+});
+
 // Add a memory
 await agentMemory.addMemory({
   agentId: 'sisyphus',
@@ -150,7 +158,7 @@ const identity = await store.load('sisyphus');
 identity.capabilities.push('new-capability');
 await store.save(identity);
 
-// Get context for injection (<200 tokens)
+// Get context for injection (<400 tokens, ~200 words)
 const context = store.toContext(identity);
 ```
 
@@ -266,7 +274,7 @@ cp node_modules/memory-soul/SKILL.md ~/.agents/skills/memory-soul-1.0.0/SKILL.md
 rm -rf ~/.agents/skills/memory-soul-1.0.0
 
 # 1. Remove SKILL.md (Windows)
-rmdir /s /q %USERPROFILE%\.agents\ skills\memory-soul-1.0.0
+rmdir /s /q "%USERPROFILE%\.agents\skills\memory-soul-1.0.0"
 
 # 2. Unlink npm package (if using npm link)
 npm unlink memory-soul

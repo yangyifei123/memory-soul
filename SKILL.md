@@ -374,6 +374,36 @@ rm -rf node_modules/
 - Results can be cached if agent context hasn't changed
 - Consider invalidating cache on talent/identity changes
 
+## Security & Safety
+
+**Data Storage**:
+- All memory data stored as plaintext JSON in `.opencode/memory-soul/`
+- No encryption at rest — sensitive data should not be stored in memories
+- File permissions depend on filesystem settings
+
+**Input Validation**:
+- `sanitizeAgentId()` prevents path traversal attacks
+- All JSON parsed with try/catch — corrupted files return defaults, never crash
+- Memory content is stored as-is — sanitize before storing sensitive data
+
+**Multi-User Isolation**:
+- `userId` parameter isolates data between users
+- Each user has separate preferences and agent usage tracking
+- Agent memories are isolated by agentId within each user
+
+**Path Traversal Protection**:
+- All file paths validated via `isPathSafe()` — blocks `../` and absolute paths
+- Agent IDs sanitized to prevent filesystem attacks
+- Base path is configurable but defaults to `.opencode/memory-soul/`
+
+**Recommended .gitignore** (add to project):
+```
+# Memory-Soul data
+.opencode/memory-soul/
+```
+
+**Backup**: Copy `.opencode/memory-soul/` directory for backup. Data is portable JSON.
+
 ## Troubleshooting
 
 **Identity not loading**: Check `.opencode/memory-soul/identities/{agentId}.json` exists

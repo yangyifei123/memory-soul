@@ -61,6 +61,27 @@ describe('Full Lifecycle Integration', () => {
     expect(contextAfter).toContain('User Preferences');
   });
 
+  it('should add learning via convenience method', async () => {
+    await registry.addLearning(agentId, 'Always check for null pointers', 0.9, ['coding', 'safety']);
+
+    const memory = registry.getAgentMemory(agentId);
+    const learnings = await memory.getLearnings();
+    expect(learnings.some(l => l.content.includes('null pointers'))).toBe(true);
+  });
+
+  it('should return memory stats', async () => {
+    // Add a learning first so stats are non-zero
+    await registry.addLearning(agentId, 'Test learning for stats', 0.8);
+    
+    const stats = await registry.getMemoryStats(agentId);
+    expect(stats).toHaveProperty('totalMemories');
+    expect(stats).toHaveProperty('learningsCount');
+    expect(stats).toHaveProperty('patternsCount');
+    expect(stats).toHaveProperty('sessionsCount');
+    expect(stats.totalMemories).toBeGreaterThan(0);
+    expect(stats.learningsCount).toBeGreaterThan(0);
+  });
+
   it('should load default identity for unknown agent', async () => {
     const context = await registry.getAgentContext('unknown-agent-xyz');
     expect(context).toContain('unknown-agent-xyz');

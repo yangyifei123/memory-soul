@@ -7,7 +7,8 @@ import {
   HookType,
   HookContext,
   HookResult,
-  AgentId
+  AgentId,
+  MemoryEntry
 } from '../memory/interfaces';
 import { AgentMemory, createAgentMemory } from '../memory/agent-memory';
 import { UserModel, createUserModel } from '../memory/user-model';
@@ -446,6 +447,20 @@ await this.executeHooks('session.start', context);
       memory.getRecentSessions(999).then(s => s.length)
     ]);
     return { totalMemories, learningsCount, patternsCount, sessionsCount };
+  }
+
+  /** Convenience: add a learning for an agent */
+  async addLearning(agentId: AgentId, content: string, confidence: number = 0.7, tags: string[] = []): Promise<MemoryEntry> {
+    const memory = this.getAgentMemory(agentId);
+    return memory.addMemory({
+      agentId,
+      scope: 'persistent',
+      type: 'learnings',
+      content,
+      confidence,
+      source: 'agent',
+      tags
+    });
   }
 }
 

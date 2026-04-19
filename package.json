@@ -1,6 +1,6 @@
 {
   "name": "memory-soul",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Agent Memory Hook System for OpenCode - gives each agent memory and experience",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

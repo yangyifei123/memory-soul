@@ -209,15 +209,76 @@ await registry.postToolExecution('sisyphus', sessionId, 'bash', params, result, 
 
 ## Installation
 
+### Prerequisites
+
+- Node.js 18+ (required for the library)
+- Git (required for cloning)
+- npm (comes with Node.js)
+
+### Option A: Local Development (Recommended)
+
 ```bash
-## Install
-1. Copy this entire folder to ~/.agents/skills/memory-soul-1.0.0/
-2. Memory data stored per-project in .opencode/memory-soul/
-3. First activation auto-creates identity and loads defaults
+# 1. Clone and build the project
+git clone <repo-url> memory-soul
+cd memory-soul
+npm install
+npm run build
+
+# 2. Install SKILL.md to opencode skills folder
+mkdir -p ~/.agents/skills/memory-soul-1.0.0
+cp SKILL.md ~/.agents/skills/memory-soul-1.0.0/SKILL.md
+
+# 3. Link the library so 'import from memory-soul' works
+npm link
+
+# 4. Verify installation
+node -e "const ms = require('memory-soul'); console.log('memory-soul v' + ms.VERSION + ' installed')"
+
+# To undo npm link (if needed later):
+npm unlink memory-soul
+```
+
+### Option B: Package Published to npm (Future)
+
+```bash
+# Once memory-soul is published to npm, use:
+npm install -g memory-soul
+mkdir -p ~/.agents/skills/memory-soul-1.0.0
+cp node_modules/memory-soul/SKILL.md ~/.agents/skills/memory-soul-1.0.0/SKILL.md
+```
+
+> **Note**: Option B will work after memory-soul is published to npm registry. Check npm for availability.
+
+### What Gets Installed
+
+| Component | Location |
+|-----------|----------|
+| SKILL.md | `~/.agents/skills/memory-soul-1.0.0/SKILL.md` |
+| Library (npm) | `node_modules/memory-soul/` |
+| Memory data | `.opencode/memory-soul/` (per-project) |
+| Identity files | `.opencode/memory-soul/identities/{agentId}.json` |
+| Talent files | `.opencode/memory-soul/talents/{agentId}.json` |
 
 ## Uninstall
-1. Remove ~/.agents/skills/memory-soul-1.0.0/
-2. Optionally remove .opencode/memory-soul/ from projects (keeps user data)
+
+```bash
+# 1. Remove SKILL.md (Unix/Mac)
+rm -rf ~/.agents/skills/memory-soul-1.0.0
+
+# 1. Remove SKILL.md (Windows)
+rmdir /s /q %USERPROFILE%\.agents\ skills\memory-soul-1.0.0
+
+# 2. Unlink npm package (if using npm link)
+npm unlink memory-soul
+
+# 3. Remove npm package (if installed via npm install -g)
+npm uninstall -g memory-soul
+
+# 4. Remove memory data (OPTIONAL - keeps user data if skipped)
+rm -rf .opencode/memory-soul/
+
+# 5. Remove node_modules if you want clean slate
+rm -rf node_modules/
 ```
 
 ## Configuration
@@ -237,6 +298,40 @@ await registry.postToolExecution('sisyphus', sessionId, 'bash', params, result, 
 **Memory deduplication not working**: Check that memories have unique content hashes
 
 **Session summarization empty**: Ensure interactions were recorded via `postChatMessage`
+
+**Import error "memory-soul"**: Run `npm link` from project root OR ensure package.json has memory-soul as dependency
+
+**npm link fails**: Try `npm install` first, then `npm link`. If issues persist, use Option B after package is published.
+
+**Windows path issues**: Replace `~/.agents/` with `%USERPROFILE%\.agents\` on Windows. Use `dir` instead of `ls`.
+
+## Verification Steps
+
+After installation, verify everything works:
+
+```bash
+# 1. Verify library loads
+node -e "const ms = require('memory-soul'); console.log('Version:', ms.VERSION)"
+
+# 2. Verify createMemoryHookRegistry exists
+node -e "const {createMemoryHookRegistry} = require('memory-soul'); console.log('Registry function:', typeof createMemoryHookRegistry)"
+
+# 3. Verify exports
+node -e "const ms = require('memory-soul'); console.log('Exports:', Object.keys(ms).join(', '))"
+
+# 4. Run tests
+npm test
+
+# 5. Verify skill file installed (Unix/Mac)
+ls ~/.agents/skills/memory-soul-1.0.0/
+
+# 5. Verify skill file installed (Windows)
+dir %USERPROFILE%\.agents\ skills\memory-soul-1.0.0\
+
+# 6. OpenCode integration: Start a new session and check if skill appears
+# In opencode, run: /skills list
+# You should see memory-soul in the list
+```
 
 ## Architecture
 
@@ -258,10 +353,26 @@ await registry.postToolExecution('sisyphus', sessionId, 'bash', params, result, 
 
 ## Key Files
 
-- `src/index.ts` — Main export: createMemoryHookRegistry
-- `src/hooks/registry.ts` — MemoryHookRegistry class
-- `src/identity/identity-store.ts` — IdentityStore class
-- `src/talents/talents-store.ts` — TalentsStore class
-- `src/memory/agent-memory.ts` — AgentMemory class
-- `src/identity/defaults.ts` — Default identities
-- `src/talents/defaults.ts` — Default talents
+### Core Library
+- `src/index.ts` — Main export: createMemoryHookRegistry, VERSION constant
+- `src/hooks/registry.ts` — MemoryHookRegistry class with full lifecycle hooks
+- `src/identity/identity-store.ts` — IdentityStore class for agent identity management
+- `src/talents/talents-store.ts` — TalentsStore class for skill/talent management
+
+### Memory System
+- `src/memory/agent-memory.ts` — AgentMemory class for persistent memory storage
+- `src/memory/summarizer.ts` — SessionSummarizer for extracting key facts/decisions
+- `src/memory/dedup.ts` — MemoryDedup with SHA256 + Jaccard similarity dedup
+- `src/memory/consolidator.ts` — MemoryConsolidator for type-aware memory merging
+- `src/memory/user-model.ts` — UserModel for preference inference and tracking
+- `src/memory/interfaces.ts` — TypeScript interfaces (MemoryEntry, HookContext, etc.)
+
+### Storage & Utilities
+- `src/storage/json-store.ts` — JsonStore for atomic JSON file persistence
+- `src/shared/utils.ts` — Shared utilities (generateId, sanitizeAgentId, ensureDir)
+- `src/shared/constants.ts` — Shared constants (STOP_WORDS for dedup)
+
+### Defaults
+- `src/identity/defaults.ts` — Default identities for 8 agent types
+- `src/talents/defaults.ts` — Default talents/skills per agent
+- `src/engine/evolution-engine.ts` — EvolutionEngine for agent learning

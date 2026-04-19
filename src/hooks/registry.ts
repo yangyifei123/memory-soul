@@ -426,6 +426,11 @@ await this.executeHooks('session.start', context);
 
     return result;
   }
+
+  async cleanupExpiredMemories(agentId: AgentId): Promise<number> {
+    const memory = this.getAgentMemory(agentId);
+    return await memory.cleanupExpired();
+  }
 }
 
 // Factory function

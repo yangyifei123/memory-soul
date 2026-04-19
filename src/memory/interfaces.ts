@@ -20,6 +20,7 @@ export interface MemoryEntry {
   source: 'user' | 'agent' | 'evolution' | 'system';
   tags: string[];
   metadata?: Record<string, unknown>;
+  expiresAt?: number;
 }
 
 export interface SessionMemory {

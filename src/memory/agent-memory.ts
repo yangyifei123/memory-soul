@@ -153,6 +153,7 @@ export class AgentMemory {
 
   async getMemories(scope?: string): Promise<MemoryEntry[]> {
     const index = this.readIndex('memories');
+    const now = Date.now();
     const memories: MemoryEntry[] = [];
 
     for (const memoryId of index) {
@@ -161,12 +162,32 @@ export class AgentMemory {
         const content = fs.readFileSync(filePath, 'utf-8');
         const memory = this.safeJsonParse(content, filePath) as MemoryEntry | null;
         if (memory && (!scope || memory.scope === scope)) {
+          // Skip expired memories
+          if (memory.expiresAt && memory.expiresAt < now) continue;
           memories.push(memory);
         }
       }
     }
 
     return memories.sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  async cleanupExpired(): Promise<number> {
+    // Read all memory files directly (not via getMemories which filters expired)
+    const index = this.readIndex('memories');
+    let cleaned = 0;
+    for (const memoryId of index) {
+      const filePath = this.getMemoryPath(memoryId);
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const memory = this.safeJsonParse(content, filePath) as MemoryEntry | null;
+        if (memory && memory.expiresAt && memory.expiresAt < Date.now()) {
+          await this.deleteMemory(memoryId);
+          cleaned++;
+        }
+      }
+    }
+    return cleaned;
   }
 
   async getLearnings(): Promise<MemoryEntry[]> {

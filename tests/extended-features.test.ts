@@ -82,4 +82,43 @@ describe('AgentMemory Extended Features', () => {
 
     expect(await memory.getMemoryCount()).toBe(2);
   });
+
+  it('expired memories are filtered out from getMemories', async () => {
+    await memory.addMemory({
+      agentId, scope: 'persistent', type: 'learnings',
+      content: 'Expired learning',
+      confidence: 0.8, source: 'agent', tags: [],
+      expiresAt: Date.now() - 5000
+    });
+    await memory.addMemory({
+      agentId, scope: 'persistent', type: 'learnings',
+      content: 'Valid learning',
+      confidence: 0.8, source: 'agent', tags: []
+    });
+
+    const all = await memory.getMemories();
+    expect(all).toHaveLength(1);
+    expect(all[0].content).toBe('Valid learning');
+  });
+
+  it('cleanupExpired removes expired and returns count', async () => {
+    await memory.addMemory({
+      agentId, scope: 'persistent', type: 'learnings',
+      content: 'Expired 1', confidence: 0.8, source: 'agent', tags: [],
+      expiresAt: Date.now() - 5000
+    });
+    await memory.addMemory({
+      agentId, scope: 'persistent', type: 'learnings',
+      content: 'Expired 2', confidence: 0.8, source: 'agent', tags: [],
+      expiresAt: Date.now() - 5000
+    });
+    await memory.addMemory({
+      agentId, scope: 'persistent', type: 'learnings',
+      content: 'Valid', confidence: 0.8, source: 'agent', tags: []
+    });
+
+    const cleaned = await memory.cleanupExpired();
+    expect(cleaned).toBe(2);
+    expect(await memory.getMemoryCount()).toBe(1);
+  });
 });

@@ -347,6 +347,33 @@ rm -rf node_modules/
 | basePath | '.opencode/memory-soul' | Root path for all data |
 | maxSessions | 100 | Max sessions to retain per agent |
 
+## Performance Considerations
+
+**Token Budget**:
+- `toContext()` outputs <400 tokens (~200 words)
+- `getAgentContext()` injects identity + talents + top 10 learnings + user prefs
+- For very long conversations, context may approach token limits
+
+**Memory Limits**:
+- `maxSessions` (default: 100) caps stored sessions per agent
+- `cleanupExpired()` runs on session end or can be called manually
+- Consider periodic cleanup for memory-constrained environments
+
+**Deduplication Performance**:
+- Jaccard similarity is O(n²) for n memories — consider limiting memory count
+- SHA256 hashing is fast (~1ms per item)
+- For >1000 memories, batch dedup operations
+
+**File I/O**:
+- Each operation (read/write) is atomic per JSON file
+- Concurrent writes to different files are handled safely
+- Session files grow with interactions — prune old sessions regularly
+
+**Context Injection Frequency**:
+- `getAgentContext()` called on each `preChatMessage`
+- Results can be cached if agent context hasn't changed
+- Consider invalidating cache on talent/identity changes
+
 ## Troubleshooting
 
 **Identity not loading**: Check `.opencode/memory-soul/identities/{agentId}.json` exists

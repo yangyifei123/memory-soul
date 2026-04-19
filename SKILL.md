@@ -404,6 +404,45 @@ rm -rf node_modules/
 
 **Backup**: Copy `.opencode/memory-soul/` directory for backup. Data is portable JSON.
 
+## Error Handling & Edge Cases
+
+**Missing Sessions**:
+- `onSessionEnd()` with non-existent session → creates session with endTime, saves it
+- `getSession()` for non-existent session → returns null
+- Sessionless operations are safe — auto-create sessions as needed
+
+**Idempotent Operations**:
+- `onSessionStart()` for existing session → updates startTime (idempotent)
+- `deleteMemory()` for non-existent ID → returns false, no exception
+- `addSkill()` for duplicate skill → no-op, returns early
+
+**Input Validation**:
+- Empty agentId → throws Error (sanitized via `sanitizeAgentId()`)
+- Path traversal attempts → throws Error, blocked at sanitizeAgentId/isPathSafe
+- Malformed agentId → invalid chars replaced with `_`
+
+**Large Content**:
+- Memory content size → no hard limit, but consider token limits in context
+- Session with many interactions → pruned by maxSessions limit
+- Long user messages → stored as-is, summarization extracts key facts
+
+**Concurrent Access**:
+- Concurrent writes to same file → atomic writes prevent corruption
+- Concurrent writes to different files → handled independently, no locks needed
+
+**Storage Errors**:
+- Disk full → JSON write fails, throws error from filesystem
+- File deleted mid-read → returns null, next write recreates
+- Base path doesn't exist → auto-created on first write
+
+**Special Characters**:
+- Unicode/emoji in content → stored as-is in JSON
+- AgentId with special chars → sanitized before filesystem access
+
+**Corrupted Data**:
+- Corrupted JSON file → returns default/empty value, logs warning
+- Never crashes on corrupted data — graceful degradation
+
 ## Troubleshooting
 
 **Identity not loading**: Check `.opencode/memory-soul/identities/{agentId}.json` exists

@@ -431,6 +431,22 @@ await this.executeHooks('session.start', context);
     const memory = this.getAgentMemory(agentId);
     return await memory.cleanupExpired();
   }
+
+  async getMemoryStats(agentId: AgentId): Promise<{
+    totalMemories: number;
+    learningsCount: number;
+    patternsCount: number;
+    sessionsCount: number;
+  }> {
+    const memory = this.getAgentMemory(agentId);
+    const [totalMemories, learningsCount, patternsCount, sessionsCount] = await Promise.all([
+      memory.getMemoryCount(),
+      memory.getLearnings().then(l => l.length),
+      memory.getPatterns().then(p => p.length),
+      memory.getRecentSessions(999).then(s => s.length)
+    ]);
+    return { totalMemories, learningsCount, patternsCount, sessionsCount };
+  }
 }
 
 // Factory function

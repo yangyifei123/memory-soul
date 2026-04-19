@@ -121,4 +121,21 @@ describe('AgentMemory Extended Features', () => {
     expect(cleaned).toBe(2);
     expect(await memory.getMemoryCount()).toBe(1);
   });
+
+  it('getMemoryCount returns correct count after operations', async () => {
+    for (let i = 0; i < 5; i++) {
+      await memory.addMemory({
+        agentId, scope: 'persistent', type: 'learnings',
+        content: `Learning ${i}`, confidence: 0.8, source: 'agent', tags: []
+      });
+    }
+    expect(await memory.getMemoryCount()).toBe(5);
+
+    // Delete 2
+    const all = await memory.getMemories();
+    await memory.deleteMemory(all[0].id);
+    await memory.deleteMemory(all[1].id);
+
+    expect(await memory.getMemoryCount()).toBe(3);
+  });
 });

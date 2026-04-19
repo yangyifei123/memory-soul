@@ -532,7 +532,7 @@ npm test
 ls ~/.agents/skills/memory-soul-1.0.0/
 
 # 5. Verify skill file installed (Windows)
-dir %USERPROFILE%\.agents\ skills\memory-soul-1.0.0\
+dir "%USERPROFILE%\.agents\skills\memory-soul-1.0.0\"
 
 # 6. OpenCode integration: Start a new session and check if skill appears
 # In opencode, run: /skills list

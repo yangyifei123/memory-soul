@@ -8,6 +8,8 @@
     "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint src/**/*.ts"
   },
   "keywords": [
